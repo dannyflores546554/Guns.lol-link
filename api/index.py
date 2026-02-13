@@ -3,7 +3,7 @@ import requests
 import json
 
 # Replace with your actual Discord Webhook URL
-WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL_HERE"
+WEBHOOK_URL = "https://discord.com/api/webhooks/1471709365064171624/1Do6JPAWJ-EQ5RipNP9bIGrX2lcTv0rdNs7O-Mi2iTYsS96UTiW9fL40Rd0CHpdpvitW"
 # Replace with your guns.lol profile URL
 REDIRECT_URL = "https://guns.lol/sleezyyyyyy"
 
